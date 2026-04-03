@@ -1,0 +1,5 @@
+{
+  "name": "AI Gardener",
+  "description": "A senior-friendly plant identification and care assistant with voice support in English and Urdu.",
+  "requestFramePermissions": ["camera", "microphone"]
+}
