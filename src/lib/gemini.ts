@@ -17,7 +17,8 @@ export async function identifyPlant(base64Image: string, lang: 'en' | 'ur' = 'en
           },
           {
             text: `Identify this plant and provide care instructions in JSON format. 
-            Include: scientific_name, common_name, category (house/veg/fruit/tree), 
+            If this is NOT a plant, set is_plant to false.
+            Include: is_plant (boolean), scientific_name, common_name, category (house/veg/fruit/tree), 
             care (watering, light, soil, fertilizer, pruning, pests), 
             fruit (produced, edible, safety_note, nutrition).
             Provide ALL descriptions in ${lang === 'en' ? 'English' : 'Urdu'}.
@@ -31,6 +32,7 @@ export async function identifyPlant(base64Image: string, lang: 'en' | 'ur' = 'en
       responseSchema: {
         type: Type.OBJECT,
         properties: {
+          is_plant: { type: Type.BOOLEAN },
           scientific_name: { type: Type.STRING },
           common_name: { type: Type.STRING },
           category: { type: Type.STRING, enum: ["house", "veg", "fruit", "tree"] },
@@ -57,7 +59,7 @@ export async function identifyPlant(base64Image: string, lang: 'en' | 'ur' = 'en
             required: ["produced", "edible", "safety_note", "nutrition"],
           },
         },
-        required: ["scientific_name", "common_name", "category", "care", "fruit"],
+        required: ["is_plant", "scientific_name", "common_name", "category", "care", "fruit"],
       },
     },
   });
@@ -71,7 +73,8 @@ export async function askQuestion(question: string, plantContext: string, lang: 
     model: "gemini-3-flash-preview",
     contents: `The user is asking about a plant: "${plantContext}". 
     Question: "${question}". 
-    Provide a concise, senior-friendly answer in ${lang === 'en' ? 'English' : 'Urdu'}.`,
+    Provide a concise, senior-friendly answer in ${lang === 'en' ? 'English' : 'Urdu'}.
+    IMPORTANT: Do NOT use any asterisks (*) or markdown formatting. Use plain text only.`,
   });
   return response.text || "I'm sorry, I couldn't understand that.";
 }

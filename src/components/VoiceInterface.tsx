@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Mic, MicOff, Send, Volume2, X, ArrowLeft, Trash2, User, Bot, Clock } from 'lucide-react';
+import { Mic, MicOff, Send, Volume2, X, ArrowLeft, Trash2, User, Bot, Clock, VolumeX } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { askQuestion } from '../lib/gemini';
 import { speak } from '../lib/speech';
@@ -23,7 +23,9 @@ const translations = {
     clearHistory: "Clear History",
     you: "You",
     assistant: "Assistant",
-    back: "Back"
+    back: "Back",
+    speechOn: "Speech On",
+    speechOff: "Speech Off"
   },
   ur: {
     title: "چیٹ اور صوتی معاون",
@@ -35,7 +37,9 @@ const translations = {
     clearHistory: "تاریخ صاف کریں",
     you: "آپ",
     assistant: "معاون",
-    back: "پیچھے"
+    back: "پیچھے",
+    speechOn: "آواز آن",
+    speechOff: "آواز آف"
   }
 };
 
@@ -44,6 +48,7 @@ export default function VoiceInterface({ plantContext, settings, onClose }: Voic
   const [inputText, setInputText] = useState('');
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [isSpeechEnabled, setIsSpeechEnabled] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const lang = settings.general.language;
   const t = translations[lang];
@@ -88,6 +93,10 @@ export default function VoiceInterface({ plantContext, settings, onClose }: Voic
     recognition.start();
   };
 
+  const cleanText = (text: string) => {
+    return text.replace(/\*/g, '').trim();
+  };
+
   const handleNewMessage = async (text: string, type: 'text' | 'voice') => {
     if (!text.trim()) return;
 
@@ -105,10 +114,11 @@ export default function VoiceInterface({ plantContext, settings, onClose }: Voic
 
     try {
       const res = await askQuestion(text, plantContext, lang);
+      const cleanedRes = cleanText(res);
       
       const aiMsg: ChatMessage = {
         id: `msg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-        text: res,
+        text: cleanedRes,
         sender: 'ai',
         timestamp: new Date().toISOString(),
         type: 'text'
@@ -116,11 +126,14 @@ export default function VoiceInterface({ plantContext, settings, onClose }: Voic
 
       setMessages(prev => [...prev, aiMsg]);
       
-      const speechLang = settings.voice.language === 'match' 
-        ? (lang === 'en' ? 'en-US' : 'ur-PK') 
-        : (settings.voice.language === 'en' ? 'en-US' : 'ur-PK');
+      // Only speak if it was a voice input OR if speech is explicitly enabled
+      if (type === 'voice' || isSpeechEnabled) {
+        const speechLang = settings.voice.language === 'match' 
+          ? (lang === 'en' ? 'en-US' : 'ur-PK') 
+          : (settings.voice.language === 'en' ? 'en-US' : 'ur-PK');
 
-      speak(res, settings.voice.speechRate, speechLang);
+        speak(cleanedRes, settings.voice.speechRate, speechLang);
+      }
     } catch (err) {
       console.error(err);
     } finally {
@@ -153,13 +166,25 @@ export default function VoiceInterface({ plantContext, settings, onClose }: Voic
           {t.back}
         </button>
         <h2 className="text-xl font-bold text-gray-900">{t.title}</h2>
-        <button 
-          onClick={clearHistory}
-          className="p-3 bg-red-50 text-red-500 rounded-2xl active:scale-95 transition-transform"
-          title={t.clearHistory}
-        >
-          <Trash2 size={24} />
-        </button>
+        <div className="flex items-center gap-2">
+          <button 
+            onClick={() => setIsSpeechEnabled(!isSpeechEnabled)}
+            className={cn(
+              "p-3 rounded-2xl active:scale-95 transition-transform flex items-center gap-2 font-bold",
+              isSpeechEnabled ? "bg-green-100 text-green-600" : "bg-gray-100 text-gray-400"
+            )}
+            title={isSpeechEnabled ? t.speechOn : t.speechOff}
+          >
+            {isSpeechEnabled ? <Volume2 size={24} /> : <VolumeX size={24} />}
+          </button>
+          <button 
+            onClick={clearHistory}
+            className="p-3 bg-red-50 text-red-500 rounded-2xl active:scale-95 transition-transform"
+            title={t.clearHistory}
+          >
+            <Trash2 size={24} />
+          </button>
+        </div>
       </div>
 
       {/* Chat Area */}

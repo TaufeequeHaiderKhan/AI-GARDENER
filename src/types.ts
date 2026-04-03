@@ -42,6 +42,7 @@ export interface AppSettings {
 }
 
 export interface PlantInfo {
+  is_plant?: boolean;
   scientific_name: string;
   common_name: string;
   category: 'house' | 'veg' | 'fruit' | 'tree';

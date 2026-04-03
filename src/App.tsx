@@ -65,6 +65,7 @@ export default function App() {
   const [savedPlants, setSavedPlants] = useState<SavedPlant[]>([]);
   const [isVoiceOpen, setIsVoiceOpen] = useState(false);
   const [isIdentifying, setIsIdentifying] = useState(false);
+  const [noMatch, setNoMatch] = useState<{ image: string } | null>(null);
   const [settings, setSettings] = useState<AppSettings>(DEFAULT_SETTINGS);
   const [reminders, setReminders] = useState<Reminder[]>([]);
   const [reminderModalConfig, setReminderModalConfig] = useState<{ isOpen: boolean; initialType: Reminder['type'] }>({
@@ -159,11 +160,17 @@ export default function App() {
 
   const handleCapture = async (base64: string) => {
     setIsIdentifying(true);
+    setNoMatch(null);
     setView('home');
     try {
       const info = await identifyPlant(base64, settings.general.language);
       const imageData = `data:image/jpeg;base64,${base64}`;
       
+      if (info.is_plant === false) {
+        setNoMatch({ image: imageData });
+        return;
+      }
+
       // Automatically save to garden
       const newPlant: SavedPlant = {
         ...info,
@@ -247,6 +254,48 @@ export default function App() {
               <p className="text-xl text-gray-500">
                 Please wait a moment
               </p>
+            </motion.div>
+          ) : noMatch ? (
+            <motion.div 
+              key="no-match"
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.9 }}
+              className="px-6 flex flex-col items-center justify-center min-h-[60vh] text-center"
+            >
+              <div className="w-48 h-48 rounded-[40px] overflow-hidden mb-8 shadow-xl border-4 border-white">
+                <img src={noMatch.image} alt="No match" className="w-full h-full object-cover" />
+              </div>
+              <h2 className="text-3xl font-black text-gray-900 mb-4">
+                {settings.general.language === 'en' ? "No Match Found" : "کوئی مماثلت نہیں ملی"}
+              </h2>
+              <p className="text-xl text-gray-500 mb-12 max-w-xs">
+                {settings.general.language === 'en' 
+                  ? "We couldn't identify this plant. Please try taking another photo from a different angle."
+                  : "ہم اس پودے کی شناخت نہیں کر سکے۔ براہ کرم کسی دوسرے زاویے سے ایک اور تصویر لینے کی کوشش کریں۔"}
+              </p>
+              <div className="w-full space-y-4">
+                <button 
+                  onClick={() => { setNoMatch(null); setView('camera'); }}
+                  className="w-full bg-green-600 text-white py-6 rounded-3xl font-black text-2xl shadow-lg active:scale-95 transition-transform flex items-center justify-center gap-3"
+                >
+                  <Camera size={32} />
+                  {settings.general.language === 'en' ? "TRY AGAIN" : "دوبارہ کوشش کریں"}
+                </button>
+                <button 
+                  onClick={() => { setNoMatch(null); fileInputRef.current?.click(); }}
+                  className="w-full bg-white text-green-700 py-5 rounded-3xl font-bold text-xl shadow-lg active:scale-95 transition-transform flex items-center justify-center gap-3 border-2 border-green-100"
+                >
+                  <Upload size={28} />
+                  {settings.general.language === 'en' ? "UPLOAD ANOTHER" : "مزید اپ لوڈ کریں"}
+                </button>
+                <button 
+                  onClick={() => setNoMatch(null)}
+                  className="w-full py-4 text-gray-400 font-bold text-lg"
+                >
+                  {settings.general.language === 'en' ? "CANCEL" : "منسوخ کریں"}
+                </button>
+              </div>
             </motion.div>
           ) : view === 'home' && !activePlant ? (
             <motion.div 
