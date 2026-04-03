@@ -78,3 +78,11 @@ export interface Reminder {
   lastTriggered?: string; // ISO date
   enabled: boolean;
 }
+
+export interface ChatMessage {
+  id: string;
+  text: string;
+  sender: 'user' | 'ai';
+  timestamp: string;
+  type: 'text' | 'voice';
+}
